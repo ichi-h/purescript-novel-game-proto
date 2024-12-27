@@ -1,0 +1,13 @@
+{
+  "name": "purescript-novel-game-proto",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "spago build --watch --then \"spago run\"",
+    "build": "spago build",
+    "test": "spago test"
+  },
+  "devDependencies": {
+    "purs-tidy": "^0.11.0"
+  }
+}
