@@ -12,10 +12,13 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "arraybuffer"
+  [ "affjax"
+  , "arraybuffer"
   , "arraybuffer-types"
   , "console"
   , "effect"
+  , "either"
+  , "functions"
   , "halogen"
   , "maybe"
   , "prelude"
