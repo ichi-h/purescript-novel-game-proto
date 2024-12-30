@@ -8,15 +8,19 @@ const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 const nodesMap = new Map();
 
 export function registerNodes(id) {
-  const nodes = {
-    source: audioContext.createBufferSource(),
-    gainNode: audioContext.createGain(),
-  };
-  nodesMap.set(id, nodes);
+  return function () {
+    const nodes = {
+      source: audioContext.createBufferSource(),
+      gainNode: audioContext.createGain(),
+    };
+    nodesMap.set(id, nodes);
+  }
 }
 
 export function deleteNodes(id) {
-  nodesMap.delete(id);
+  return function () {
+    nodesMap.delete(id);
+  }
 }
 
 export function playAudioImpl(
@@ -31,7 +35,7 @@ export function playAudioImpl(
   return function () {
     const element = nodesMap.get(id);
     if (element === undefined) {
-      return { tag: "Left", value: id + " not found" };
+      return false;
     }
 
     const { source, gainNode } = element;
@@ -39,7 +43,7 @@ export function playAudioImpl(
     audioContext.decodeAudioData(buffer, decodedData => {
       source.buffer = decodedData;
 
-      if (loopOpts) {
+      if ("start" in loopOpts && "end" in loopOpts) {
         source.loop = true;
         source.loopStart = loopOpts.start;
         source.loopEnd = loopOpts.end;
@@ -58,7 +62,7 @@ export function playAudioImpl(
       gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration / 1000);
     });
 
-    return { tag: "Right", value: null };
+    return true;
   };
 }
 
@@ -66,7 +70,7 @@ export function stopAudioImpl(id, fadeOut) {
   return function () {
     const element = nodesMap.get(id);
     if (element === undefined) {
-      return { tag: "Left", value: id + " not found" };
+      return false;
     }
 
     const { source, gainNode } = element;
@@ -79,7 +83,7 @@ export function stopAudioImpl(id, fadeOut) {
       source.stop();
     }, fadeOut);
 
-    return { tag: "Right", value: null };
+    return true;
   };
 }
 
@@ -87,13 +91,13 @@ export function changeVolumeImpl(id, volume) {
   return function () {
     const element = nodesMap.get(id);
     if (element === undefined) {
-      return { tag: "Left", value: id + " not found" };
+      return false;
     }
 
     const { gainNode } = element;
 
     gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
 
-    return { tag: "Right", value: null };
+    return true;
   };
 }

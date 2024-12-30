@@ -9,22 +9,21 @@ module WebAudio
 import Prelude
 
 import Data.ArrayBuffer.Types (ArrayBuffer)
-import Data.Either (Either)
 import Data.Function.Uncurried (Fn2, Fn7, runFn2, runFn7)
 import Data.Maybe (Maybe)
 import Effect (Effect)
 
 foreign import registerNodes :: String -> Effect Unit
 foreign import deleteNodes :: String -> Effect Unit
-foreign import playAudioImpl :: Fn7 String ArrayBuffer Int Int Int Int (Maybe { start :: Int, end :: Int }) (Effect (Either String Unit))
-foreign import stopAudioImpl :: Fn2 String Int (Effect (Either String Unit))
-foreign import changeVolumeImpl :: Fn2 String Number (Effect (Either String Unit))
+foreign import playAudioImpl :: Fn7 String ArrayBuffer Int Int Int Int (Maybe { start :: Int, end :: Int }) (Effect Boolean)
+foreign import stopAudioImpl :: Fn2 String Int (Effect Boolean)
+foreign import changeVolumeImpl :: Fn2 String Number (Effect Boolean)
 
-playAudio :: String -> ArrayBuffer -> Int -> Int -> Int -> Int -> Maybe { start :: Int, end :: Int } -> Effect (Either String Unit)
+playAudio :: String -> ArrayBuffer -> Int -> Int -> Int -> Int -> Maybe { start :: Int, end :: Int } -> Effect Boolean
 playAudio = runFn7 playAudioImpl
 
-stopAudio :: String -> Int -> Effect (Either String Unit)
+stopAudio :: String -> Int -> Effect Boolean
 stopAudio = runFn2 stopAudioImpl
 
-changeVolume_ :: String -> Number -> Effect (Either String Unit)
+changeVolume_ :: String -> Number -> Effect Boolean
 changeVolume_ = runFn2 changeVolumeImpl

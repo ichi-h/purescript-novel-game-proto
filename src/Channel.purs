@@ -1,8 +1,9 @@
 module Channel
   ( ChangeVolumeEvent(..)
-  , Channel
+  , Channel(..)
   , PlayEvent(..)
   , StopEvent(..)
+  , PlayStatus(..)
   , changeVolume
   , play
   , stop
@@ -10,12 +11,12 @@ module Channel
 
 import Prelude
 
-import Control.Monad.State (StateT, get, modify_)
+import Data.ArrayBuffer.ArrayBuffer (empty)
 import Data.ArrayBuffer.Types (ArrayBuffer)
-import Data.Either (Either(..))
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Class (liftEffect)
+import Logger as Logger
 import WebAudio (playAudio, stopAudio, changeVolume_)
 
 data PlayStatus = Playing | Stopped
@@ -24,43 +25,56 @@ data Channel = Channel
   { name :: String
   , playStatus :: PlayStatus
   , volume :: Number
-  , audioBuffer :: ArrayBuffer
+  , audioBuffer :: Maybe ArrayBuffer
   }
 
-newtype PlayEvent = PlayEvent
-  { offset :: Int
+data PlayEvent = PlayEvent
+  { channel :: Channel
+  , offset :: Int
   , durationMs :: Int
   , fadeInMs :: Int
   , fadeOutMs :: Int
   , loop :: Maybe { start :: Int, end :: Int }
   }
 
-newtype StopEvent = StopEvent
-  { fadeOutMs :: Int
+data StopEvent = StopEvent
+  { channel :: Channel
+  , fadeOutMs :: Int
   }
 
-newtype ChangeVolumeEvent = ChangeVolumeEvent Number
+data ChangeVolumeEvent = ChangeVolumeEvent
+  { channel :: Channel
+  , volume :: Number
+  }
 
-play :: PlayEvent -> StateT Channel Effect Unit
-play (PlayEvent { offset, durationMs, fadeInMs, fadeOutMs, loop }) = do
-  Channel channel <- get
-  res <- liftEffect $ playAudio channel.name channel.audioBuffer offset durationMs fadeInMs fadeOutMs loop
+play :: PlayEvent -> Effect Channel
+play (PlayEvent { channel: Channel c, offset, durationMs, fadeInMs, fadeOutMs, loop }) = do
+  buffer <- case c.audioBuffer of
+    Just b -> pure b
+    Nothing -> do
+      b <- empty 0
+      pure b
+  res <- liftEffect $ playAudio c.name buffer offset durationMs fadeInMs fadeOutMs loop
   case res of
-    Left _ -> pure unit
-    Right _ -> modify_ \(Channel c) -> Channel c { playStatus = Playing }
+    false -> do
+      Logger.error "Failed to play audio"
+      pure $ Channel c
+    true -> pure $ Channel $ c { playStatus = Playing }
 
-stop :: StopEvent -> StateT Channel Effect Unit
-stop (StopEvent { fadeOutMs }) = do
-  Channel channel <- get
-  res <- liftEffect $ stopAudio channel.name fadeOutMs
+stop :: StopEvent -> Effect Channel
+stop (StopEvent { channel: Channel c, fadeOutMs }) = do
+  res <- stopAudio c.name fadeOutMs
   case res of
-    Left _ -> pure unit
-    Right _ -> modify_ \(Channel c) -> Channel c { playStatus = Stopped }
+    false -> do
+      Logger.error "Failed to stop audio"
+      pure $ Channel c
+    true -> pure $ Channel $ c { playStatus = Stopped }
 
-changeVolume :: ChangeVolumeEvent -> StateT Channel Effect Unit
-changeVolume (ChangeVolumeEvent volume) = do
-  Channel channel <- get
-  res <- liftEffect $ changeVolume_ channel.name volume
+changeVolume :: ChangeVolumeEvent -> Effect Channel
+changeVolume (ChangeVolumeEvent { channel: Channel c, volume }) = do
+  res <- changeVolume_ c.name volume
   case res of
-    Left _ -> pure unit
-    Right _ -> modify_ \(Channel c) -> Channel c { volume = volume }
+    false -> do
+      Logger.error "Failed to change volume"
+      pure $ Channel c
+    true -> pure $ Channel $ c { volume = volume }
