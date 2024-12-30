@@ -10,15 +10,21 @@ module Channel
 
 import Prelude
 
-import Control.Monad.State (StateT)
+import Control.Monad.State (StateT, get, modify_)
 import Data.ArrayBuffer.Types (ArrayBuffer)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe)
 import Effect (Effect)
+import Effect.Class (liftEffect)
+import WebAudio (playAudio, stopAudio, changeVolume_)
 
-newtype Channel = Channel
+data PlayStatus = Playing | Stopped
+
+data Channel = Channel
   { name :: String
+  , playStatus :: PlayStatus
   , volume :: Number
-  , source :: ArrayBuffer
+  , audioBuffer :: ArrayBuffer
   }
 
 newtype PlayEvent = PlayEvent
@@ -36,13 +42,25 @@ newtype StopEvent = StopEvent
 newtype ChangeVolumeEvent = ChangeVolumeEvent Number
 
 play :: PlayEvent -> StateT Channel Effect Unit
-play _ = do
-  pure unit
+play (PlayEvent { offset, durationMs, fadeInMs, fadeOutMs, loop }) = do
+  Channel channel <- get
+  res <- liftEffect $ playAudio channel.name channel.audioBuffer offset durationMs fadeInMs fadeOutMs loop
+  case res of
+    Left _ -> pure unit
+    Right _ -> modify_ \(Channel c) -> Channel c { playStatus = Playing }
 
 stop :: StopEvent -> StateT Channel Effect Unit
-stop _ = do
-  pure unit
+stop (StopEvent { fadeOutMs }) = do
+  Channel channel <- get
+  res <- liftEffect $ stopAudio channel.name fadeOutMs
+  case res of
+    Left _ -> pure unit
+    Right _ -> modify_ \(Channel c) -> Channel c { playStatus = Stopped }
 
 changeVolume :: ChangeVolumeEvent -> StateT Channel Effect Unit
-changeVolume _ = do
-  pure unit
+changeVolume (ChangeVolumeEvent volume) = do
+  Channel channel <- get
+  res <- liftEffect $ changeVolume_ channel.name volume
+  case res of
+    Left _ -> pure unit
+    Right _ -> modify_ \(Channel c) -> Channel c { volume = volume }
