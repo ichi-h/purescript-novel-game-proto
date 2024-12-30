@@ -4,14 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "app-setup": "pnpm i && spago install && pnpm build",
+    "postinstall": "spago install",
     "dev": "npm-run-all --parallel dev:*",
-    "dev:purs": "spago bundle-app --to assets/app.js -y --watch",
+    "dev:purs": "pnpm build:purs --watch",
     "dev:vite": "vite",
+    "build": "npm-run-all build:*",
     "build:purs": "spago bundle-app --to assets/app.js -y",
     "build:vite": "vite build",
-    "build": "npm-run-all build:*",
     "preview": "vite preview",
+    "spago:i": "spago install $1",
     "test": "spago test"
   },
   "devDependencies": {
