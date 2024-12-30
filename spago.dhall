@@ -17,7 +17,9 @@ to generate this file without the comments in this block.
   , "console"
   , "effect"
   , "halogen"
+  , "maybe"
   , "prelude"
+  , "transformers"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
