@@ -1,5 +1,7 @@
 "use strict";
 
+import { Just } from '#/Data.Maybe'
+
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 /**
@@ -26,8 +28,7 @@ export function deleteNodes(id) {
 export function playAudioImpl(
   id,
   buffer,
-  offset,
-  duration,
+  offsetMs,
   fadeIn,
   fadeOut,
   loopOpts,
@@ -41,12 +42,14 @@ export function playAudioImpl(
     const { source, gainNode } = element;
 
     audioContext.decodeAudioData(buffer, decodedData => {
+      const sampleRate = decodedData.sampleRate;
       source.buffer = decodedData;
 
-      if ("start" in loopOpts && "end" in loopOpts) {
+      if (loopOpts instanceof Just) {
+        const { start, end } = loopOpts.value0
         source.loop = true;
-        source.loopStart = loopOpts.start;
-        source.loopEnd = loopOpts.end;
+        source.loopStart = start / sampleRate;
+        source.loopEnd = end / sampleRate;
       }
 
       gainNode.gain.setValueAtTime(0, audioContext.currentTime);
@@ -55,11 +58,15 @@ export function playAudioImpl(
       source.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
-      source.start(audioContext.currentTime + offset / 1000, 0, duration / 1000);
+      source.start(0, offsetMs / 1000);
 
       // Handle fadeOut
-      gainNode.gain.setValueAtTime(1, audioContext.currentTime + duration / 1000 - fadeOut / 1000);
-      gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration / 1000);
+      if (!source.loop) {
+        const duration = loopEnd - loopStart;
+        const fadeOutStart = audioContext.currentTime + duration - fadeOut / 1000;
+        gainNode.gain.setValueAtTime(1, fadeOutStart);
+        gainNode.gain.linearRampToValueAtTime(0, fadeOutStart + fadeOut / 1000);
+      }
     });
 
     return true;

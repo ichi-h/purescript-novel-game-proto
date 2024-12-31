@@ -4,7 +4,7 @@ import Prelude
 
 import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AX
-import Channel (Channel(..), PlayStatus(..), play, PlayEvent(..))
+import Channel (Channel(..), PlayEvent(..), PlayStatus(..), StopEvent(..), play, stop)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -22,11 +22,10 @@ main = HA.runHalogenAff do
   body <- HA.awaitBody
   runUI component unit body
 
-data Action = Increment | Decrement
+data Action = Setup | Play | Stop
 
 data State = State
-  { count :: Int
-  , channel :: Channel
+  { channel :: Channel
   }
 
 component :: forall query input output m. MonadAff m => H.Component query input output m
@@ -39,35 +38,42 @@ component =
 
 initialState :: forall i. i -> State
 initialState _ = State
-  { count: 0
-  , channel: Channel { name: "channel", playStatus: Stopped, volume: 1.0, audioBuffer: Nothing }
+  { channel: Channel { name: "channel", playStatus: Stopped, volume: 1.0, audioBuffer: Nothing }
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render (State { count }) =
+render _ =
   HH.div_
-    [ HH.button [ HE.onClick \_ -> Decrement ] [ HH.text "-" ]
-    , HH.div_ [ HH.text $ show count ]
-    , HH.button [ HE.onClick \_ -> Increment ] [ HH.text "+" ]
+    [ HH.button [ HE.onClick \_ -> Setup ] [ HH.text "setup" ]
+    , HH.button [ HE.onClick \_ -> Play ] [ HH.text "play" ]
+    , HH.button [ HE.onClick \_ -> Stop ] [ HH.text "stop" ]
     ]
 
 handleAction :: forall o m. MonadAff m => Action -> H.HalogenM State Action () o m Unit
 handleAction = case _ of
-  Increment -> do
+  Setup -> do
     liftEffect $ registerNodes "channel"
     response <- liftAff $ AX.get AXRF.arrayBuffer "http://localhost:8080/assets/test.mp3"
     case response of
       Left _ -> do
-        H.modify_ \(State state) ->
-          State $ state { count = state.count + 1 }
+        pure unit
       Right { body } -> do
         H.modify_ \(State state) ->
           State
-            { count: state.count + 1
-            , channel: Channel $ (\(Channel c) -> c { audioBuffer = Just body }) state.channel
+            { channel: Channel $ (\(Channel c) -> c { audioBuffer = Just body }) state.channel
             }
-  Decrement -> do
+  Play -> do
     State state <- H.get
-    _ <- liftEffect $ play $ PlayEvent { channel: state.channel, offset: 0, durationMs: 10000000, fadeInMs: 0, fadeOutMs: 0, loop: Nothing }
-    H.modify_ \(State s) ->
-      State { count: s.count - 1, channel: s.channel }
+    c <- liftEffect $ play $ PlayEvent
+      { channel: state.channel
+      , offsetMs: 1000
+      , fadeInMs: 0
+      , fadeOutMs: 500
+      , loop: Just { start: 48000 * 5, end: 48000 * 6 }
+      }
+    H.modify_ \_ -> State { channel: c }
+
+  Stop -> do
+    State state <- H.get
+    c <- liftEffect $ stop $ StopEvent { channel: state.channel, fadeOutMs: 500 }
+    H.modify_ \_ -> State { channel: c }
