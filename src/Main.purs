@@ -5,6 +5,7 @@ import Prelude
 import Affjax.ResponseFormat as AXRF
 import Affjax.Web as AX
 import Channel (Channel(..), PlayEvent(..), PlayStatus(..), StopEvent(..), play, stop)
+import Control.Monad.Except (ExceptT(..), runExceptT)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -49,28 +50,35 @@ render _ =
     , HH.button [ HE.onClick \_ -> Stop ] [ HH.text "stop" ]
     ]
 
+data AppError
+  = RegisterError
+  | FetchError
+
+mapError :: forall a b. AppError -> Either a b -> Either AppError b
+mapError _ (Right b) = Right b
+mapError a _ = Left a
+
 handleAction :: forall o m. MonadAff m => Action -> H.HalogenM State Action () o m Unit
 handleAction = case _ of
-  Setup -> do
-    liftEffect $ registerNodes "channel"
-    response <- liftAff $ AX.get AXRF.arrayBuffer "http://localhost:8080/assets/test.mp3"
-    case response of
-      Left _ -> do
-        pure unit
-      Right { body } -> do
-        H.modify_ \(State state) ->
-          State
-            { channel: Channel $ (\(Channel c) -> c { audioBuffer = Just body }) state.channel
-            }
+  Setup -> void $ runExceptT do
+    _ <- ExceptT $ map (mapError RegisterError) $ liftEffect $ registerNodes "channel"
+
+    response <- ExceptT $ map (mapError FetchError) $ liftAff $ AX.get AXRF.arrayBuffer "http://localhost:8080/assets/test.mp3"
+
+    H.modify_ \(State state) ->
+      State
+        { channel: Channel $ (\(Channel c) -> c { audioBuffer = Just response.body }) state.channel
+        }
+
   Play -> do
     State state <- H.get
     c <- liftEffect $ play $ PlayEvent
       { channel: state.channel
-      , delayMs: 5000
+      , delayMs: 0
       , offsetMs: 0
       , fadeInMs: 0
-      , fadeOutMs: 500
-      , loop: Just { start: 48000 * 5, end: 48000 * 6 }
+      , fadeOutMs: 0
+      , loop: Just { start: 48000 * 2, end: 48000 * 5 }
       }
     H.modify_ \_ -> State { channel: c }
 

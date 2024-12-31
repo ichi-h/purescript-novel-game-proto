@@ -1,5 +1,6 @@
 "use strict";
 
+import { Left, Right } from '#/Data.Either';
 import { Just } from '#/Data.Maybe'
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -11,11 +12,15 @@ const nodesMap = new Map();
 
 export function registerNodes(id) {
   return function () {
+    if (nodesMap.has(id)) {
+      return Left.create('Node already exists');
+    }
     const nodes = {
       source: audioContext.createBufferSource(),
       gainNode: audioContext.createGain(),
     };
     nodesMap.set(id, nodes);
+    return Right.create(undefined);
   }
 }
 
@@ -37,7 +42,7 @@ export function playAudioImpl(
   return function () {
     const element = nodesMap.get(id);
     if (element === undefined) {
-      return false;
+      return Left.create(`Node ${id} not found`);
     }
 
     const { source, gainNode } = element;
@@ -63,14 +68,12 @@ export function playAudioImpl(
 
       // Handle fadeOut
       if (!source.loop) {
-        const duration = loopEnd - loopStart;
-        const fadeOutStart = audioContext.currentTime + duration - fadeOut / 1000;
-        gainNode.gain.setValueAtTime(1, fadeOutStart);
-        gainNode.gain.linearRampToValueAtTime(0, fadeOutStart + fadeOut / 1000);
+        gainNode.gain.setValueAtTime(1, decodedData.duration - fadeOut / 1000);
+        gainNode.gain.linearRampToValueAtTime(0, decodedData.duration);
       }
     });
 
-    return true;
+    return Right.create(undefined);
   };
 }
 
@@ -78,7 +81,7 @@ export function stopAudioImpl(id, fadeOut) {
   return function () {
     const element = nodesMap.get(id);
     if (element === undefined) {
-      return false;
+      return Left.create(`Node ${id} not found`);
     }
 
     const { source, gainNode } = element;
@@ -91,7 +94,7 @@ export function stopAudioImpl(id, fadeOut) {
       source.stop();
     }, fadeOut);
 
-    return true;
+    return Right.create(undefined);
   };
 }
 
@@ -99,13 +102,13 @@ export function changeVolumeImpl(id, volume) {
   return function () {
     const element = nodesMap.get(id);
     if (element === undefined) {
-      return false;
+      return Left.create(`Node ${id} not found`);
     }
 
     const { gainNode } = element;
 
     gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
 
-    return true;
+    return Right.create(undefined);
   };
 }

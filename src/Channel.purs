@@ -13,6 +13,7 @@ import Prelude
 
 import Data.ArrayBuffer.ArrayBuffer (empty)
 import Data.ArrayBuffer.Types (ArrayBuffer)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Class (liftEffect)
@@ -51,30 +52,28 @@ play :: PlayEvent -> Effect Channel
 play (PlayEvent { channel: Channel c, delayMs, offsetMs, fadeInMs, fadeOutMs, loop }) = do
   buffer <- case c.audioBuffer of
     Just b -> pure b
-    Nothing -> do
-      b <- empty 0
-      pure b
+    Nothing -> empty 0
   res <- liftEffect $ playAudio c.name buffer delayMs offsetMs fadeInMs fadeOutMs loop
   case res of
-    false -> do
-      Logger.error "Failed to play audio"
+    Left err -> do
+      Logger.error err
       pure $ Channel c
-    true -> pure $ Channel $ c { playStatus = Playing }
+    Right _ -> pure $ Channel $ c { playStatus = Playing }
 
 stop :: StopEvent -> Effect Channel
 stop (StopEvent { channel: Channel c, fadeOutMs }) = do
   res <- stopAudio c.name fadeOutMs
   case res of
-    false -> do
-      Logger.error "Failed to stop audio"
+    Left err -> do
+      Logger.error err
       pure $ Channel c
-    true -> pure $ Channel $ c { playStatus = Stopped }
+    Right _ -> pure $ Channel $ c { playStatus = Stopped }
 
 changeVolume :: ChangeVolumeEvent -> Effect Channel
 changeVolume (ChangeVolumeEvent { channel: Channel c, volume }) = do
   res <- changeVolume_ c.name volume
   case res of
-    false -> do
-      Logger.error "Failed to change volume"
+    Left err -> do
+      Logger.error err
       pure $ Channel c
-    true -> pure $ Channel $ c { volume = volume }
+    Right _ -> pure $ Channel $ c { volume = volume }

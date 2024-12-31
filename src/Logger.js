@@ -1,13 +1,19 @@
 "use strict";
 
 export function debug(object) {
-  console.log(object);
+  return function () {
+    console.log(object);
+  }
 }
 
 export function warn(object) {
-  console.warn(object);
+  return function () {
+    console.warn(object);
+  }
 }
 
 export function error(object) {
-  console.error(object);
+  return function () {
+    console.error(object);
+  }
 }
