@@ -17,13 +17,17 @@ to generate this file without the comments in this block.
   , "affjax-web"
   , "arraybuffer"
   , "arraybuffer-types"
+  , "arrays"
   , "console"
   , "effect"
   , "either"
   , "functions"
   , "halogen"
+  , "halogen-subscriptions"
+  , "integers"
   , "maybe"
   , "prelude"
+  , "strings"
   , "transformers"
   ]
 , packages = ./packages.dhall

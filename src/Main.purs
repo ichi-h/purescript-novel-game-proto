@@ -20,8 +20,10 @@ import Data.Array (mapWithIndex)
 import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
+import Data.String (length)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Effect (Effect)
+import Effect.Aff (Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Halogen (liftEffect)
 import Halogen as H
@@ -57,11 +59,17 @@ data State = State
   , sentenceAnimation :: SentenceAnimation
   }
 
-speed :: Number
-speed = 0.95
+speedRate :: Number
+speedRate = 0.95
+
+maxShowSec :: Number
+maxShowSec = 0.1
 
 sentence :: String
 sentence = "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。吾輩はここで始めて人間というものを見た。"
+
+totalTimeSec :: Number
+totalTimeSec = maxShowSec * (1.0 - speedRate) * toNumber (length sentence)
 
 component :: forall query input output m. MonadAff m => H.Component query input output m
 component =
@@ -102,9 +110,9 @@ render (State { sentenceAnimation }) =
                         Ready -> "opacity: 0;"
                         Showing ->
                           "transition-timing-function: ease-in; "
-                            <> (if speed /= 1.0 then "transition-duration: 0.05s;" else "")
+                            <> (if speedRate /= 1.0 then "transition-duration: 0.05s;" else "")
                             <> " transition-delay: "
-                            <> (show $ 0.1 * (1.0 - speed) * toNumber i)
+                            <> (show $ maxShowSec * (1.0 - speedRate) * toNumber i)
                             <> "s; opacity: 1;"
                         Finished -> "opacity: 1;"
                     )
@@ -151,7 +159,11 @@ handleAction = case _ of
     c <- liftEffect $ stop $ StopEvent { channel: state.channel, fadeOutMs: 500 }
     H.modify_ \(State s) -> State (s { channel = c })
 
-  StartAnimation -> H.modify_ \(State s) -> State $ s { sentenceAnimation = Showing }
+  StartAnimation -> do
+    H.modify_ \(State s) -> State $ s { sentenceAnimation = Showing }
+    void $ H.fork $ do
+      H.liftAff $ delay $ Milliseconds $ totalTimeSec * 1000.0
+      handleAction FinishAnimation
 
   FinishAnimation -> H.modify_ \(State s) -> State $ s { sentenceAnimation = Finished }
 
