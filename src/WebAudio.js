@@ -28,6 +28,7 @@ export function deleteNodes(id) {
 export function playAudioImpl(
   id,
   buffer,
+  delayMs,
   offsetMs,
   fadeIn,
   fadeOut,
@@ -58,7 +59,7 @@ export function playAudioImpl(
       source.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
-      source.start(0, offsetMs / 1000);
+      source.start(delayMs / 1000, offsetMs / 1000);
 
       // Handle fadeOut
       if (!source.loop) {

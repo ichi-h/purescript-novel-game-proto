@@ -30,6 +30,7 @@ data Channel = Channel
 
 data PlayEvent = PlayEvent
   { channel :: Channel
+  , delayMs :: Int
   , offsetMs :: Int
   , fadeInMs :: Int
   , fadeOutMs :: Int
@@ -47,13 +48,13 @@ data ChangeVolumeEvent = ChangeVolumeEvent
   }
 
 play :: PlayEvent -> Effect Channel
-play (PlayEvent { channel: Channel c, offsetMs, fadeInMs, fadeOutMs, loop }) = do
+play (PlayEvent { channel: Channel c, delayMs, offsetMs, fadeInMs, fadeOutMs, loop }) = do
   buffer <- case c.audioBuffer of
     Just b -> pure b
     Nothing -> do
       b <- empty 0
       pure b
-  res <- liftEffect $ playAudio c.name buffer offsetMs fadeInMs fadeOutMs loop
+  res <- liftEffect $ playAudio c.name buffer delayMs offsetMs fadeInMs fadeOutMs loop
   case res of
     false -> do
       Logger.error "Failed to play audio"

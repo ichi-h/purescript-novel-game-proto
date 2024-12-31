@@ -66,7 +66,8 @@ handleAction = case _ of
     State state <- H.get
     c <- liftEffect $ play $ PlayEvent
       { channel: state.channel
-      , offsetMs: 1000
+      , delayMs: 5000
+      , offsetMs: 0
       , fadeInMs: 0
       , fadeOutMs: 500
       , loop: Just { start: 48000 * 5, end: 48000 * 6 }
