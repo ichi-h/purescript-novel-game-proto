@@ -72,15 +72,23 @@ maxShowSec = 0.1
 
 sentences :: Array String
 sentences =
-  [ "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。吾輩はここで始めて人間というものを見た。"
+  [ "吾輩は猫である。名前はまだ無い。"
+  , "どこで生れたかとんと見当がつかぬ。"
+  , "何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。"
+  , "吾輩はここで始めて人間というものを見た。"
   , "しかもあとで聞くとそれは書生という人間中で一番獰悪な種族であったそうだ。"
   , "この書生というのは時々我々を捕えて煮て食うという話である。"
   , "しかしその当時は何という考もなかったから別段恐しいとも思わなかった。"
   , "ただ彼の掌に載せられてスーと持ち上げられた時何だかフワフワした感じがあったばかりである。"
   , "掌の上で少し落ちついて書生の顔を見たのがいわゆる人間というものの見始であろう。"
-  , "この時妙なものだと思った感じが今でも残っている。第一毛をもって装飾されべきはずの顔がつるつるしてまるで薬缶だ。"
+  , "この時妙なものだと思った感じが今でも残っている。"
+  , "第一毛をもって装飾されべきはずの顔がつるつるしてまるで薬缶だ。"
   , "その後猫にもだいぶ逢ったがこんな片輪には一度も出会わした事がない。"
   , "のみならず顔の真中があまりに突起している。"
+  , "そうしてその穴の中から時々ぷうぷうと煙を吹く。"
+  , "どうも咽せぽくて実に弱った。"
+  , "これが人間の飲む煙草というものである事はようやくこの頃知った。……"
+  , "（Replay）"
   ]
 
 totalTimeSec :: String -> Number
@@ -109,36 +117,47 @@ initialState _ = State
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render (State { sentenceAnimation, sentence }) =
-  HH.div_
-    [ HH.button [ HE.onClick \_ -> Play ] [ HH.text "play" ]
-    , HH.button [ HE.onClick \_ -> Stop ] [ HH.text "stop" ]
-    , HH.div
-        [ HP.style "width: 400px; height: 200px; border:1px solid black;"
-        , HE.onClick \_ ->
-            case sentenceAnimation of
-              Ready -> NextAnimation
-              Rendering -> NoOp
-              Showing -> FinishAnimation
-              Finished -> NextAnimation
-        ]
-        ( mapWithIndex
-            ( \i c -> HH.span
-                [ HP.style
-                    ( case sentenceAnimation of
-                        Ready -> ""
-                        Rendering -> "opacity: 0;"
-                        Showing ->
-                          "transition-timing-function: ease-in; "
-                            <> (if speedRate /= 1.0 then "transition-duration: 0.05s;" else "")
-                            <> " transition-delay: "
-                            <> (show $ maxShowSec * (1.0 - speedRate) * toNumber i)
-                            <> "s; opacity: 1;"
-                        Finished -> "opacity: 1;"
-                    )
-                ]
-                [ HH.text (fromCharArray [ c ]) ]
-            ) $ toCharArray sentence
-        )
+  HH.div
+    [ HP.class_ $ HH.ClassName "w-full h-svh flex items-center justify-center"
+    ]
+    [ if sentenceAnimation == Ready then
+        HH.button
+          [ HE.onClick \_ -> Play
+          , HP.class_ $ HH.ClassName "w-1/2 h-16 text-white text-4xl rounded-sm shadow-lg flex items-center justify-center border-2 border-white"
+          ]
+          [ HH.text "Play" ]
+      else
+        HH.div
+          [ HP.class_ $ HH.ClassName "w-full h-full flex items-center justify-center"
+          , HE.onClick \_ ->
+              case sentenceAnimation of
+                Ready -> NextAnimation
+                Rendering -> NoOp
+                Showing -> FinishAnimation
+                Finished -> NextAnimation
+          ]
+          [ HH.div
+              [ HP.class_ $ HH.ClassName "w-full max-w-5xl text-4xl text-white break-all select-none "
+              ]
+              ( mapWithIndex
+                  ( \i c -> HH.span
+                      [ HP.style
+                          ( case sentenceAnimation of
+                              Ready -> ""
+                              Rendering -> "opacity: 0;"
+                              Showing ->
+                                "transition-timing-function: ease-in; "
+                                  <> (if speedRate /= 1.0 then "transition-duration: 0.05s;" else "")
+                                  <> " transition-delay: "
+                                  <> (show $ maxShowSec * (1.0 - speedRate) * toNumber i)
+                                  <> "s; opacity: 1;"
+                              Finished -> "opacity: 1;"
+                          )
+                      ]
+                      [ HH.text (fromCharArray [ c ]) ]
+                  ) $ toCharArray sentence
+              )
+          ]
     ]
 
 data AppError
@@ -169,9 +188,10 @@ handleAction = case _ of
       , offsetMs: 0
       , fadeInMs: 0
       , fadeOutMs: 0
-      , loop: Nothing
+      , loop: Just { start: 0, end: 7474068 }
       }
     H.modify_ \(State s) -> State $ s { channel = c }
+    handleAction NextAnimation
 
   Stop -> do
     State state <- H.get
@@ -184,7 +204,7 @@ handleAction = case _ of
     H.liftAff $ delay $ Milliseconds $ 1000.0 * totalTimeSec beforeState.sentence
     State nextState <- H.get
     if nextState.sentenceIndex == beforeState.sentenceIndex then
-      handleAction $ FinishAnimation
+      handleAction FinishAnimation
     else
       pure unit
 

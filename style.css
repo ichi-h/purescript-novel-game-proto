@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "MS PMincho",
+    "Yu Mincho", serif;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: rgb(3 7 18);
+}

@@ -1,9 +1,25 @@
 {
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.includeLanguages": {
+    "purescript": ""
+  },
   "purescript.formatter": "purs-tidy",
   "purescript.addNpmPath": true,
   "[purescript]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "nwolverson.ide-purescript"
+    "editor.defaultFormatter": "nwolverson.ide-purescript",
+    "tailwindCSS.experimental.classRegex": [
+      "\\bClassName[\\s(<|]+\"([^\"]*)\"",
+      "\\bClassName[\\s(]+\"[^\"]*\"[\\s+]+\"([^\"]*)\"",
+      "\\bClassName[\\s<|]+\"[^\"]*\"\\s*\\+{2}\\s*\" ([^\"]*)\"",
+      "\\bClassName[\\s<|]+\"[^\"]*\"\\s*\\+{2}\\s*\" [^\"]*\"\\s*\\+{2}\\s*\" ([^\"]*)\"",
+      "\\bClassName[\\s<|]+\"[^\"]*\"\\s*\\+{2}\\s*\" [^\"]*\"\\s*\\+{2}\\s*\" [^\"]*\"\\s*\\+{2}\\s*\" ([^\"]*)\"",
+      "\\bclasses[\\s\\[\\(]+\"([^\"]*)\"",
+      "\\bclasses[\\s\\[\\(]+\"[^\"]*\",\\s[^\\)]+\\)[\\s\\[\\(,]+\"([^\"]*)\"",
+      "\\bclasses[\\s\\[\\(]+\"[^\"]*\",\\s[^\\)]+\\)[\\s\\[\\(,]+\"[^\"]*\",\\s[^\\)]+\\)[\\s\\[\\(,]+\"([^\"]*)\""
+    ]
   },
   "purescript.pscIdePort": 15587,
 }
